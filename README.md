@@ -1,0 +1,1 @@
+#Starte in bash: ./shell
