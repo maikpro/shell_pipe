@@ -1,2 +1,2 @@
-#Erstelle in bash: make \n
+#Erstelle in bash: make 
 #Starte in bash: ./shell
