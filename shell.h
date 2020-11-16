@@ -45,25 +45,91 @@ void dir() {
 void help() { 
 	printf("\n***WELCOME TO MY SHELL HELP***"
 		"\nList of Commands supported:"
-		"\n>cd"
-		"\n>ls"
-		"\n>exit"); 
+		"\n>cd: wechselt das Verzeichnis."
+		"\n>ls: zeigt das aktuelle Verzeichnis an."
+		"\n>export: fügt eine custom Variable in env ein. export ...=..."
+		"\n>showenv: zeigt alle custom Variablen in env an."
+		"\n>clear: löscht alle Eingaben."
+		"\n>exit: schließt das Programm."); 
 
 	return; 
 } 
 
 //gibt env aus.
 void showenv(char *env){
-	printf("***env:*** \n%s\n", env);
+	if(strlen(env) < 1){
+		printf("env ist leer!\n");
+	} else{
+		printf("***env:*** \n%s\n", env);
+	}
+}
+
+//teilt alle strings von str durch delimiter auf und packt sie in das Array str2
+void aufteilen(char *str, char **str2, char *delimiter){
+	int i = 0;
+
+    //teilt den ersten Teil von BefehlLine auf bei Leerzeichen " "
+    char *p = strtok(str, delimiter);
+
+	//teile weitere Teile von BefehlLine auf.
+	while( p != NULL ){
+		str2[i++] = p;
+		p = strtok(NULL, delimiter);
+	}
+}
+
+int checkIfExists(char *env, char *var){
+	char varGleich[MAX]="";
+	char sucheVar[MAX]="";
+
+	strcat(sucheVar, var);
+
+	char *p = strtok(sucheVar, "=");
+	strcat(varGleich, p);
+	strcat(varGleich, "=");
+	printf("Suche nach Variable: %s\n", varGleich);
+	
+
+	if( strstr(env, varGleich) != NULL ){
+		char *result = strstr(env, varGleich);
+
+		//lösche vorhandene Variable aus env.
+		memset(result,0,strlen(result));
+	
+	}
+
+	//gefunden 
+	return 1;
+
+	//nicht gefunden
+	return 0;
 }
 
 //legt eine Variable in env ab.
 void exportenv(char **parsedBefehle, char *env){
     char *var;
-	strtok( parsedBefehle[ 1 ], "\n" );
-	var = parsedBefehle[1];
-	strcat(env, var);
-	strcat(env, "\n");
+
+	//schaue ob die Variable im env existiert, falls ja wird sie gelöscht.
+	checkIfExists(env, parsedBefehle[1]);
+
+	//var wird in env eingefügt.
+	//Beim export müssen alle befehle durchlaufen werden
+	for(int i = 1; i<strlen(*parsedBefehle); i++){
+		if( parsedBefehle[i] == NULL){
+			return;
+		}
+		var = parsedBefehle[i];
+
+		//Variable wird in env gepackt:
+		strcat(env, var);
+		if( parsedBefehle[i+1] != NULL){
+			strcat(env, " "); 
+		}
+		
+		//entfernt überschüssige Befehle für nächste Eingabe
+		memset(parsedBefehle[i], 0, strlen(parsedBefehle[i]));
+	}
+	strcat(env, "\n");//nächste Zeile
 }
 
 /*überprüft, ob es sich um einen builtin command handelt oder um ein normalen.
@@ -116,7 +182,6 @@ int checkCommandType(char** parsedBefehle, char *env) {
 		//exportenv
 		//übergebe die befehle und das env
 		exportenv(parsedBefehle, env);
-		
 		return 1; 
 
 	case 6:
@@ -126,7 +191,9 @@ int checkCommandType(char** parsedBefehle, char *env) {
 
 	case 7: 
 		//echo
+		//strtok( parsedBefehle[ 1 ], "\n" );
 		printf("%s\n", parsedBefehle[1]);
+		return 1;
 
 	default: 
 		break; 
@@ -155,23 +222,9 @@ int readline(char *befehlLine) {
     }
 } 
 
-//teilt alle strings von str durch delimiter auf und packt sie in das Array str2
-void aufteilen(char *str, char **str2, char *delimiter){
-	int i = 0;
-
-    //teilt den ersten Teil von BefehlLine auf bei Leerzeichen " "
-    char *p = strtok(str, delimiter);
-
-	//teile weitere Teile von BefehlLine auf.
-	while( p != NULL ){
-		str2[i++] = p;
-		p = strtok(NULL, delimiter);
-	}
-}
-
 //Suche nach export-Variable in env und löse sie auf.
-void customVarAufloesen(char **parsedBefehle, char *env, char *var, int i){
-    //"var="
+void ersetzeVariable(char **parsedBefehle, char *env, char *var, int i){
+	//"var="
     char varGleich[MAX]="";
     //das Kopie von env als Array.
     char *envArr[MAX];
@@ -212,8 +265,11 @@ void customVarAufloesen(char **parsedBefehle, char *env, char *var, int i){
         if( strstr(envArr[j], needle) != NULL ){
             aufteilen(envArr[j], varInhalt, "=");
             parsedBefehle[i] = varInhalt[1];
-        } 
+			return;
+        }
     }
+
+	printf("Variable gibt es nicht in env!\n");
 }
 
 //Umgebungsvariablen wie $HOME auflösen.
@@ -236,10 +292,18 @@ void varAufloesen(char **parsedBefehle, char *env){
 			strtok( parsedBefehle[ strlen(*parsedBefehle)-1 ], "\n" );
 			var = strtok(parsedBefehle[i], "$");
 			
+			//TEST
+			strtok(var,"\n");
+			//
+
             //wenn $ eine env variable (nicht bash) aufgelöst werden soll:
 			if(getenv(var) == NULL){
 				//suche nach variable und löse sie auf:
-                customVarAufloesen(parsedBefehle,env,var,i);
+				if(strlen(env) < 1){
+					printf("env hat keine Variablen! Nutze export ... = ... um eine Variable hinzuzufügen");
+					return;
+				}
+                ersetzeVariable(parsedBefehle,env,var,i);
 			} else if( getenv(var) != NULL ){
 				parsedBefehle[i] = getenv(var);
 			} else{
@@ -247,6 +311,7 @@ void varAufloesen(char **parsedBefehle, char *env){
 			}
 			
 			printf("AUFGELÖST: %s\n", parsedBefehle[i]);
+			return;
 		}
 
     }
