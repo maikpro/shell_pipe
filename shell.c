@@ -22,7 +22,11 @@ int main() {
 		//1 => einfacher command, wie ls
 		if (commandType == 1) 
 			execCmds(parsedBefehle); 
-
 	} 
 	return 0; 
 } 
+
+
+/*TODO: -vorhandene Variablen in env löschen/überschreiben.
+		-ganze Strings speichern.
+*/
