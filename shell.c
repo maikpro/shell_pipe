@@ -25,8 +25,3 @@ int main() {
 	} 
 	return 0; 
 } 
-
-
-/*TODO: -vorhandene Variablen in env löschen/überschreiben.
-		-ganze Strings speichern.
-*/

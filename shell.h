@@ -28,7 +28,7 @@ void printArray(char **array){
 		if( array[j] == NULL ){
 			return;
 		}
-		printf("Befehl %d: %s\n", j+1, array[j]);
+		printf("Befehl %d: %s\n", j, array[j]);
 		printf("Befehl-Länge %ld\n", strlen( array[j] ));
     }
 	printf("=============================\n");
@@ -57,10 +57,13 @@ void help() {
 
 //gibt env aus.
 void showenv(char *env){
-	if(strlen(env) < 1){
-		printf("env ist leer!\n");
-	} else{
-		printf("***env:*** \n%s\n", env);
+	extern char **environ;
+	int i = 1;
+	char *s = *environ;
+
+	for (; s; i++) {
+		printf("%s\n", s);
+		s = *(environ+i);
 	}
 }
 
@@ -78,58 +81,58 @@ void aufteilen(char *str, char **str2, char *delimiter){
 	}
 }
 
-int checkIfExists(char *env, char *var){
+void checkIfExists(char *env, char *var){
 	char varGleich[MAX]="";
 	char sucheVar[MAX]="";
+	char envCpy[MAX]="";
+	//Inhalt der Variablen
+    char *varInhalt[MAX];
+	
+	//die Kopie von env als Array.
+    char *envArr[MAX];
 
 	strcat(sucheVar, var);
 
 	char *p = strtok(sucheVar, "=");
 	strcat(varGleich, p);
 	strcat(varGleich, "=");
-	printf("Suche nach Variable: %s\n", varGleich);
-	
 
 	if( strstr(env, varGleich) != NULL ){
-		char *result = strstr(env, varGleich);
+		char *result;
+		//result = strstr(env, varGleich);
+		
+		//kopieren von env nach envCpy
+    	strcpy(envCpy, env);
 
-		//lösche vorhandene Variable aus env.
-		memset(result,0,strlen(result));
+    	//envCpy wird in ein Array verwandelt.
+    	aufteilen(envCpy, envArr, "\n");
+
+		//Suche nach Variablen in env
+    	for( int j = 0; j<strlen(*envArr);j++ ){
+        	//falls leer
+        	if(envArr[j] == NULL){
+            	break;
+			}
+
+			printf("ARR: %s", envArr[j]);
+
+        	//Such nach der Variablen und lösche sie falls sie überschrieben werden soll 
+        	if( strstr(envArr[j], varGleich) != NULL ){
+            	aufteilen(envArr[j], varInhalt, "=");
+            	
+				//lösche vorhandene Variable aus env.
+				//memset(envArr[j], 0, strlen(envArr[j]));
+
+				//result = strstr(env, varGleich);
+				memset(varInhalt, 0, strlen(*varInhalt));
+
+				return;
+        	}
+        }
+		
+		
 	
 	}
-
-	//gefunden 
-	return 1;
-
-	//nicht gefunden
-	return 0;
-}
-
-//legt eine Variable in env ab.
-void exportenv(char **parsedBefehle, char *env){
-    char *var;
-
-	//schaue ob die Variable im env existiert, falls ja wird sie gelöscht.
-	checkIfExists(env, parsedBefehle[1]);
-
-	//var wird in env eingefügt.
-	//Beim export müssen alle befehle durchlaufen werden
-	for(int i = 1; i<strlen(*parsedBefehle); i++){
-		if( parsedBefehle[i] == NULL){
-			return;
-		}
-		var = parsedBefehle[i];
-
-		//Variable wird in env gepackt:
-		strcat(env, var);
-		if( parsedBefehle[i+1] != NULL){
-			strcat(env, " "); 
-		}
-		
-		//entfernt überschüssige Befehle für nächste Eingabe
-		memset(parsedBefehle[i], 0, strlen(parsedBefehle[i]));
-	}
-	strcat(env, "\n");//nächste Zeile
 }
 
 /*überprüft, ob es sich um einen builtin command handelt oder um ein normalen.
@@ -138,6 +141,9 @@ und gibt 1 aus, wenn es ein buildin ist.*/
 int checkCommandType(char** parsedBefehle, char *env) { 
 	int anzahl = 7, auswahlCmd = 0; 
 	//environment
+
+	char befehlline[MAX];
+	char *splittedLine[MAX];
 	
 	char *builtInCmds[anzahl]; 
 
@@ -179,9 +185,27 @@ int checkCommandType(char** parsedBefehle, char *env) {
 		return 1; 
 	
 	case 5:
-		//exportenv
-		//übergebe die befehle und das env
-		exportenv(parsedBefehle, env);
+		//alle Befehle in Inhalt füllen
+		for(int i=1;i<strlen(*parsedBefehle); i++){
+			if(parsedBefehle[i] == NULL){
+				//Schleife abbrechen:
+				break; 
+			}
+			
+			//printf("TEST: %s \n", parsedBefehle[i]);
+			strcat(befehlline, parsedBefehle[i]);
+			strcat(befehlline, " ");
+		}
+
+		//printf("===> %s\n", befehlline);
+		//Befehlline wird durch = aufgesplittet in var und inhalt
+		strtok(befehlline,"\n");
+		aufteilen(befehlline, splittedLine,"=");
+		//printf("===> splittedLine: %s\n", splittedLine[1]);
+
+		//splittedLine[0] => VAR
+		//splittedLine[1] => Inhalt
+		setenv(splittedLine[0],splittedLine[1],1);
 		return 1; 
 
 	case 6:
@@ -226,7 +250,7 @@ int readline(char *befehlLine) {
 void ersetzeVariable(char **parsedBefehle, char *env, char *var, int i){
 	//"var="
     char varGleich[MAX]="";
-    //das Kopie von env als Array.
+    //die Kopie von env als Array.
     char *envArr[MAX];
     //Kopie von env
     char envCpy[MAX];
@@ -362,7 +386,7 @@ void execCmds(char** parsedBefehle) {
 			return;
 
 		case 0:
-			if (execvp(parsedBefehle[0], parsedBefehle) < 0) { 
+			if ( execvp(parsedBefehle[0], parsedBefehle) < 0 ) { 
 				printf("\nDer Command kann nicht ausgeführt werden..."); 
 			} 
 			break;
@@ -371,7 +395,8 @@ void execCmds(char** parsedBefehle) {
 		default:
 			//warte auf den Kind-Prozess bis es terminiert.
 			//wenn waitpid nicht 0 liefert dann ist ein Fehler aufgetreten.
-			if (waitpid (pid, NULL, WUNTRACED) == 0) {
+			//WUNTRACED bit is set in OPTIONS, return status for stopped children; otherwise don't.
+			if (waitpid (pid, NULL, WUNTRACED) == 0) { 
           		perror("waitpid()");
           		return;
        		}
