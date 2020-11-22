@@ -1,0 +1,11 @@
+     1	insgesamt 68
+     2	 4 drwxrwxr-x 3 ladmin ladmin  4096 Nov 22 19:46 .
+     3	 4 drwxrwxrwx 6 ladmin ladmin  4096 Nov 21 12:43 ..
+     4	 4 drwxrwxr-x 8 ladmin ladmin  4096 Nov 21 12:44 .git
+     5	 4 -rw-rw-r-- 1 ladmin ladmin    64 Nov 21 13:42 Makefile
+     6	 8 -rw-rw-r-- 1 ladmin ladmin  4307 Nov 22 19:37 pipe.h
+     7	 4 -rw-rw-r-- 1 ladmin ladmin    68 Nov 21 12:44 README.md
+     8	24 -rwxrwxr-x 1 ladmin ladmin 22560 Nov 22 19:45 shell
+     9	 4 -rw-rw-r-- 1 ladmin ladmin  1340 Nov 22 19:36 shell.c
+    10	12 -rw-rw-r-- 1 ladmin ladmin 10693 Nov 22 19:45 shell.h
+    11	 0 -rw-rw-r-- 1 ladmin ladmin     0 Nov 22 19:46 struct.txt

@@ -1,7 +1,4 @@
 all: shell
 
-shell: shell.c
+shell: shell.c shell.h pipe.h
 	gcc -o shell shell.c
-
-clean:
-	rm shell

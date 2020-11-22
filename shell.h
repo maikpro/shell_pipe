@@ -1,19 +1,3 @@
-//REFERENZEN: GeeksforGeeks abgerufen am 11.11.2020: 
-//https://www.geeksforgeeks.org/making-linux-shell-c/
-
-#include<stdio.h> 
-#include<string.h> 
-#include<stdlib.h> 
-#include<unistd.h> //um fork zu nutzen
-#include<sys/types.h> 
-#include<sys/wait.h> 
-#include <errno.h> 
-
-#define MAX 1000 //maximale Länge von commands
-
-// Clearing the shell using escape sequences 
-#define clear() printf("\033[H\033[J") 
-
 /*
 	Quelle: https://stackoverflow.com/questions/55672661/what-this-character-sequence-033h-033j-does-in-c
 	\033 - ASCII escape character
@@ -21,17 +5,29 @@
 	[J - erases the screen from the current line down to the bottom of the screen
 */
 
+//Hier vorwärts deklaration, um Fehler zu vermeiden!
+int parsePipe(char* befehlLine, char** pipedBefehle);
+
 void printArray(char **array){
 	printf("\n=============================\n");
-	//durchlaufe alle geparsten Befehle
-    for(int j = 0; j<strlen(*array); j++){
-		if( array[j] == NULL ){
-			return;
+	
+	if(strlen(*array) <= 0){
+		printf("Array ist leer!\n");
+	}
+
+	else{
+		//durchlaufe alle geparsten Befehle
+		for(int j = 0; j<strlen(*array); j++){
+			if( array[j] == NULL ){
+				break;
+			}
+			printf("Befehl %d: %s\n", j, array[j]);
+			printf("Befehl-Länge %ld\n", strlen( array[j] ));
 		}
-		printf("Befehl %d: %s\n", j, array[j]);
-		printf("Befehl-Länge %ld\n", strlen( array[j] ));
-    }
-	printf("=============================\n");
+
+		printf("\nLänge des Gesamten Arrays: %ld\n", strlen(*array) );
+		printf("=============================\n");
+	}
 }
 
 //gibt das jetztige Verzeichnis aus.
@@ -69,15 +65,24 @@ void showenv(char *env){
 
 //teilt alle strings von str durch delimiter auf und packt sie in das Array str2
 void aufteilen(char *str, char **str2, char *delimiter){
+	printf("AUFTEILEN!!!\n");
+	
 	int i = 0;
-
+	
     //teilt den ersten Teil von BefehlLine auf bei Leerzeichen " "
     char *p = strtok(str, delimiter);
 
 	//teile weitere Teile von BefehlLine auf.
 	while( p != NULL ){
-		str2[i++] = p;
+		if(strlen(p) > 1 || p != ""){
+			str2[i++] = p;
+		}
 		p = strtok(NULL, delimiter);
+
+		//Umbruch entfernen!
+		if(p == NULL){
+			strtok(str2[i-1], "\n");
+		}
 	}
 }
 
@@ -348,27 +353,73 @@ void parseBefehle(char *befehlLine, char **parsedBefehle, char *env){
     //entfernt die Leerzeichen von der Eingabe und gliedert die Befehle in Arrays.
     aufteilen(befehlLine, parsedBefehle, " ");	
 
+	printArray(parsedBefehle);
+
     //variablen auflösen, wenn $ enthalten.
     varAufloesen(parsedBefehle, env);
     //printArray(parsedBefehle);
 	
 }
 
+/*
+	str ist das Array mit dem Leerzeichen
+	str2 ist das leere Array, wo das Array ohne Leerzeichen gespeichert wird.
+*/
+void removeSpace(char *str, char *str2){
+	char *tmp[2];
+	
+	printf("str: %s\n", str);
+
+	strtok(str, "\n");
+	aufteilen(str, tmp, " ");
+	
+	printArray(tmp);
+
+	for( int i=0;i<strlen(*tmp);i++ ){
+		if( tmp[i] == NULL ){
+			break;
+		}
+		printf("tmp[%d]: %s\n", i, tmp[i]);
+		strcat(str2, tmp[i]);
+		
+		if( tmp[i+1] != NULL){
+			strcat(str2, " ");
+		}
+	}
+}
+
 /*findCommandType gibt 0 aus, wenn es ein builtin command ist
 und gibt 1 aus, wenn es ein einfacher command ist. */
-int findCommandType(char* befehlLine, char** parsedBefehle, char* env) { 
+int findCommandType(char* befehlLine, char **parsedBefehle, char* env, char **parsedPipeBefehle) { 
+	char *pipedBefehle[2]; // nur eine einstufige Pipe implementiert
+	int piped=0;
+	//char *pipedBefehlNoSpace[2]; // hier wird der Inhalt des Befehls gelagert.
 
-	//1.) parse die Commands
-	parseBefehle(befehlLine, parsedBefehle, env);
+	/*parsePipe gibt:
+		0 => wenn keine Pipe gefunden wurde
+		1 => wenn Pipe gefunden wurde
+	*/
+	piped = parsePipe(befehlLine, pipedBefehle);
+	//printArray(pipedBefehle);
+
+	if(piped){
+		parseBefehle(pipedBefehle[0], parsedBefehle, env);
+		parseBefehle(pipedBefehle[1], parsedPipeBefehle, env);
+	} else{
+		//1.) parse die Commands
+		parseBefehle(befehlLine, parsedBefehle, env);
+	}
 
 	//2.) finde CommandType
     //0: builtin
     //1: einfacher command, wie ls
 	if ( checkCommandType(parsedBefehle, env) ){
 		return 0;
-	} else{
-		strtok( parsedBefehle[ strlen(*parsedBefehle)-1 ], "\n" );
-		return 1;
+	} 
+
+	//normaler Befehl
+	else{
+		return 1 + piped;
 	}
 }
 
@@ -386,6 +437,9 @@ void execCmds(char** parsedBefehle) {
 			return;
 
 		case 0:
+
+			printArray(parsedBefehle);
+
 			if ( execvp(parsedBefehle[0], parsedBefehle) < 0 ) { 
 				printf("\nDer Command kann nicht ausgeführt werden..."); 
 			} 
