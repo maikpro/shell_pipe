@@ -37,18 +37,14 @@ int main() {
 		//gibt 0 zurück, wenn es kein command ist oder wenn es ein buildin ist.
         commandType = findCommandType(befehlLine, parsedBefehle, env, parsedPipeBefehle); 
 
-		printf("COMMANDTYPE: %d\n", commandType);
-
 		// führe den Befehl aus 
 		//1 => einfacher command, wie ls
 		if (commandType == 1){
-			printf("jetzt wird execCmd ausgeführt...\n"); 
 			execCmds(parsedBefehle); 
 		}
 
 		//piped Befehl ausführen
 		if (commandType == 2){
-			printf("jetzt wird execPipe ausgeführt...\n"); 
 			execPipe(parsedBefehle, parsedPipeBefehle);
 		}
 

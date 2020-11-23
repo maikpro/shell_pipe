@@ -65,8 +65,6 @@ void showenv(char *env){
 
 //teilt alle strings von str durch delimiter auf und packt sie in das Array str2
 void aufteilen(char *str, char **str2, char *delimiter){
-	printf("AUFTEILEN!!!\n");
-	
 	int i = 0;
 	
     //teilt den ersten Teil von BefehlLine auf bei Leerzeichen " "
@@ -118,8 +116,6 @@ void checkIfExists(char *env, char *var){
         	if(envArr[j] == NULL){
             	break;
 			}
-
-			printf("ARR: %s", envArr[j]);
 
         	//Such nach der Variablen und lösche sie falls sie überschrieben werden soll 
         	if( strstr(envArr[j], varGleich) != NULL ){
@@ -353,7 +349,7 @@ void parseBefehle(char *befehlLine, char **parsedBefehle, char *env){
     //entfernt die Leerzeichen von der Eingabe und gliedert die Befehle in Arrays.
     aufteilen(befehlLine, parsedBefehle, " ");	
 
-	printArray(parsedBefehle);
+	//printArray(parsedBefehle);
 
     //variablen auflösen, wenn $ enthalten.
     varAufloesen(parsedBefehle, env);
@@ -373,7 +369,7 @@ void removeSpace(char *str, char *str2){
 	strtok(str, "\n");
 	aufteilen(str, tmp, " ");
 	
-	printArray(tmp);
+	//printArray(tmp);
 
 	for( int i=0;i<strlen(*tmp);i++ ){
 		if( tmp[i] == NULL ){
@@ -402,10 +398,18 @@ int findCommandType(char* befehlLine, char **parsedBefehle, char* env, char **pa
 	piped = parsePipe(befehlLine, pipedBefehle);
 	//printArray(pipedBefehle);
 
+	if( piped < 0 ){
+		//printf("Es ist ein Fehler aufgetreten!\n");
+		//printArray(pipedBefehle);
+		return -1;
+	}
+
 	if(piped){
 		parseBefehle(pipedBefehle[0], parsedBefehle, env);
 		parseBefehle(pipedBefehle[1], parsedPipeBefehle, env);
-	} else{
+	} 
+	
+	else{
 		//1.) parse die Commands
 		parseBefehle(befehlLine, parsedBefehle, env);
 	}
@@ -438,7 +442,7 @@ void execCmds(char** parsedBefehle) {
 
 		case 0:
 
-			printArray(parsedBefehle);
+			//printArray(parsedBefehle);
 
 			if ( execvp(parsedBefehle[0], parsedBefehle) < 0 ) { 
 				printf("\nDer Command kann nicht ausgeführt werden..."); 
