@@ -21,7 +21,6 @@
 
 
 int main() { 
-	char env[1024]="";
 	char befehlLine[MAX], *parsedBefehle[MAX], *parsedPipeBefehle[MAX]; 
 	int commandType = 0; 
 
@@ -35,7 +34,9 @@ int main() {
 		
         // Prozess:
 		//gibt 0 zurück, wenn es kein command ist oder wenn es ein buildin ist.
-        commandType = findCommandType(befehlLine, parsedBefehle, env, parsedPipeBefehle); 
+        commandType = findCommandType(befehlLine, parsedBefehle, parsedPipeBefehle); 
+
+		//printf("COMMANDTYPE: %d\n", commandType);
 
 		// führe den Befehl aus 
 		//1 => einfacher command, wie ls

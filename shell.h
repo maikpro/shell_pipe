@@ -52,7 +52,8 @@ void help() {
 } 
 
 //gibt env aus.
-void showenv(char *env){
+void showenv(){
+	printf("showenv!!!\n");
 	extern char **environ;
 	int i = 1;
 	char *s = *environ;
@@ -139,7 +140,7 @@ void checkIfExists(char *env, char *var){
 /*überprüft, ob es sich um einen builtin command handelt oder um ein normalen.
 gibt 0 aus, wenn es ein einfacher command ist
 und gibt 1 aus, wenn es ein buildin ist.*/
-int checkCommandType(char** parsedBefehle, char *env) { 
+int checkCommandType(char** parsedBefehle) { 
 	int anzahl = 7, auswahlCmd = 0; 
 	//environment
 
@@ -149,10 +150,10 @@ int checkCommandType(char** parsedBefehle, char *env) {
 	char *builtInCmds[anzahl]; 
 
 	//builtin commands
-	builtInCmds[0] = "exit\n"; 
+	builtInCmds[0] = "exit"; 
 	builtInCmds[1] = "cd"; 
-	builtInCmds[2] = "help\n"; 
-	builtInCmds[3] = "showenv\n"; 
+	builtInCmds[2] = "help"; 
+	builtInCmds[3] = "showenv"; 
 	builtInCmds[4] = "export"; 
 	builtInCmds[5] = "clear\n"; 
 	builtInCmds[6] = "echo"; 
@@ -182,7 +183,7 @@ int checkCommandType(char** parsedBefehle, char *env) {
 
 	case 4:
 		//showenv
-		showenv(env);
+		showenv();
 		return 1; 
 	
 	case 5:
@@ -247,58 +248,8 @@ int readline(char *befehlLine) {
     }
 } 
 
-//Suche nach export-Variable in env und löse sie auf.
-void ersetzeVariable(char **parsedBefehle, char *env, char *var, int i){
-	//"var="
-    char varGleich[MAX]="";
-    //die Kopie von env als Array.
-    char *envArr[MAX];
-    //Kopie von env
-    char envCpy[MAX];
-    //Such Schlüssel
-    const char *needle;
-    //Inhalt der Variablen
-    char *varInhalt[MAX];
-    
-    //schneidet umbruch raus.
-    strtok(var, "\n");
-    
-    //fügt die Variable in diesem Format zusammen: var=
-    strcat(varGleich, var);
-    strcat(varGleich, "=");
-    //
-
-    //Schlüssel festlegen: var=
-    needle = varGleich;
-
-    //kopieren von env nach envCpy
-    strcpy(envCpy, env);
-
-    //envCpy wird in ein Array verwandelt.
-    aufteilen(envCpy, envArr, "\n");
-
-    //Suche nach Variablen in env
-    for( int j = 0; j<strlen(*envArr);j++ ){
-        //falls leer
-        if(envArr[j] == NULL){
-            break;
-        }
-
-        //"Such nach Nadel im Heuhaufen"
-        //Suche nach var= und gebe den Inhalt hinter = aus
-        //Beispiel: abc="hello" -> Suche nach abc= -> gibt "hello" aus.
-        if( strstr(envArr[j], needle) != NULL ){
-            aufteilen(envArr[j], varInhalt, "=");
-            parsedBefehle[i] = varInhalt[1];
-			return;
-        }
-    }
-
-	printf("Variable gibt es nicht in env!\n");
-}
-
 //Umgebungsvariablen wie $HOME auflösen.
-void varAufloesen(char **parsedBefehle, char *env){
+void varAufloesen(char **parsedBefehle){
     //var auflösen nach $
     char *key = "$";
 
@@ -323,12 +274,7 @@ void varAufloesen(char **parsedBefehle, char *env){
 
             //wenn $ eine env variable (nicht bash) aufgelöst werden soll:
 			if(getenv(var) == NULL){
-				//suche nach variable und löse sie auf:
-				if(strlen(env) < 1){
-					printf("env hat keine Variablen! Nutze export ... = ... um eine Variable hinzuzufügen");
-					return;
-				}
-                ersetzeVariable(parsedBefehle,env,var,i);
+                printf("Variable gibt es nicht!\n");
 			} else if( getenv(var) != NULL ){
 				parsedBefehle[i] = getenv(var);
 			} else{
@@ -345,14 +291,14 @@ void varAufloesen(char **parsedBefehle, char *env){
 
 
 //liest befehlLine und teilt die Befehle auf.
-void parseBefehle(char *befehlLine, char **parsedBefehle, char *env){
+void parseBefehle(char *befehlLine, char **parsedBefehle){
     //entfernt die Leerzeichen von der Eingabe und gliedert die Befehle in Arrays.
     aufteilen(befehlLine, parsedBefehle, " ");	
 
 	//printArray(parsedBefehle);
 
     //variablen auflösen, wenn $ enthalten.
-    varAufloesen(parsedBefehle, env);
+    varAufloesen(parsedBefehle);
     //printArray(parsedBefehle);
 	
 }
@@ -386,7 +332,7 @@ void removeSpace(char *str, char *str2){
 
 /*findCommandType gibt 0 aus, wenn es ein builtin command ist
 und gibt 1 aus, wenn es ein einfacher command ist. */
-int findCommandType(char* befehlLine, char **parsedBefehle, char* env, char **parsedPipeBefehle) { 
+int findCommandType(char* befehlLine, char **parsedBefehle, char **parsedPipeBefehle) { 
 	char *pipedBefehle[2]; // nur eine einstufige Pipe implementiert
 	int piped=0;
 	//char *pipedBefehlNoSpace[2]; // hier wird der Inhalt des Befehls gelagert.
@@ -405,22 +351,25 @@ int findCommandType(char* befehlLine, char **parsedBefehle, char* env, char **pa
 	}
 
 	if(piped){
-		parseBefehle(pipedBefehle[0], parsedBefehle, env);
-		parseBefehle(pipedBefehle[1], parsedPipeBefehle, env);
+		parseBefehle(pipedBefehle[0], parsedBefehle);
+		parseBefehle(pipedBefehle[1], parsedPipeBefehle);
 	} 
 	
 	else{
 		//1.) parse die Commands
-		parseBefehle(befehlLine, parsedBefehle, env);
+		parseBefehle(befehlLine, parsedBefehle);
 	}
+
+	//printf("PIPED: %d\n", piped);
 
 	//2.) finde CommandType
     //0: builtin
     //1: einfacher command, wie ls
-	if ( checkCommandType(parsedBefehle, env) ){
-		return 0;
-	} 
-
+	if(piped == 0){
+		if ( checkCommandType(parsedBefehle) == 0 ){
+			return 1;
+		} 
+	}
 	//normaler Befehl
 	else{
 		return 1 + piped;
@@ -429,6 +378,8 @@ int findCommandType(char* befehlLine, char **parsedBefehle, char* env, char **pa
 
 // Function where the system command is executed 
 void execCmds(char** parsedBefehle) { 
+	//printf("execCmd\n");
+
 	// Forking a child 
 	pid_t pid = fork(); 
 

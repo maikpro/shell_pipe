@@ -11,16 +11,16 @@ int parsePipe(char* befehlLine, char** pipedBefehle){
     }
 
     //Fehlerbehandlung von leeren Pipes!
-    if( strlen(pipedBefehle[0]) < 2 || strlen(pipedBefehle[1]) < 2 ){
+    /*if( strlen(pipedBefehle[0]) < 2 || strlen(pipedBefehle[1]) < 2 ){
         printf("Das ist kein gültiger Befehl!\n");
         return -1;
-    }
+    }*/
 
     //Fehlerbehandlung bei mehrstufigen Pipes:
-    if(pipedBefehle[2] != NULL){
+    /*if(pipedBefehle[2] != NULL){
         printf("Nur einstufige Pipes möglich!\n");
         return -1;
-    }
+    }*/
 
     if( pipedBefehle[1] == NULL ){
         //printf("keinen Pipe-Befehl gefunden!\n");
@@ -34,7 +34,9 @@ int parsePipe(char* befehlLine, char** pipedBefehle){
 }
 
 void execPipe(char **parsedBefehle, char **parsedPipeBefehle){
-	int pipefd[2];
+	//printf("execPipe\n");
+    
+    int pipefd[2];
 	pid_t p1, p2;
 
     /*
@@ -56,6 +58,8 @@ void execPipe(char **parsedBefehle, char **parsedPipeBefehle){
 
     //1. Prozess wird ausgeführt
 	if( p1 == 0 ){
+        //printf("Prozess 1 startet\n");
+        
         //Hier wird geschrieben, deswegen wird Lesedeskriptor geschlossen!
         close( pipefd[0] );
 
@@ -73,11 +77,16 @@ void execPipe(char **parsedBefehle, char **parsedPipeBefehle){
             return;
         }
 		
-        if ( execvp(parsedBefehle[0], parsedBefehle) < 0 ) { 
-			printf("Der 1. Command kann nicht ausgeführt werden...\n"); 
-		}  
+        //builtin test
+        if( checkCommandType(parsedBefehle)  ){
+            exit(0);
+        } else{
+            if ( execvp(parsedBefehle[0], parsedBefehle) < 0 ) { 
+			    printf("Der 1. Command kann nicht ausgeführt werden...\n"); 
+		    }  
 
-        close(pipefd[1]);
+            close(pipefd[1]);
+        }
 	}
 
     //Eltern-Prozess ausführen
@@ -90,6 +99,8 @@ void execPipe(char **parsedBefehle, char **parsedPipeBefehle){
 
 	//2. Prozess wird ausgeführt
     if( p2 == 0 ){
+        //printf("Prozess 2 startet\n");
+        
         //Hier wird nur gelesen, deswegen wird Schreibdeskiptor geschlossen!
         close( pipefd[1] );
 
@@ -99,10 +110,13 @@ void execPipe(char **parsedBefehle, char **parsedPipeBefehle){
             return;
         }
 
-        if ( execvp(parsedPipeBefehle[0], parsedPipeBefehle) < 0 ) { 
-            printf("Der 2. Command kann nicht ausgeführt werden...\n"); 
-        } 
-
+        if( checkCommandType(parsedPipeBefehle)  ){
+            exit(0);
+        } else{
+            if ( execvp(parsedPipeBefehle[0], parsedPipeBefehle) < 0 ) { 
+                printf("Der 2. Command kann nicht ausgeführt werden...\n"); 
+            } 
+        }
         close(pipefd[0]);
     }
 
